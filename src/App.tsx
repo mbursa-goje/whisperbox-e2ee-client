@@ -40,7 +40,7 @@ type Toast = { tone: "info" | "error"; text: string } | null;
 
 const emptyConversation: Conversation | null = null;
 const iconButton =
-  "grid h-10 w-10 cursor-pointer place-items-center rounded-full border-0 bg-transparent text-neutral-950 transition duration-200 ease-out hover:scale-105 hover:bg-neutral-100 active:scale-95";
+  "grid h-10 w-10 cursor-pointer place-items-center rounded-full border-0 bg-transparent text-neutral-950 transition duration-200 ease-out hover:-translate-y-0.5 hover:bg-neutral-100 active:translate-y-0";
 const avatarClass =
   "grid h-13 w-13 shrink-0 place-items-center rounded-full border-2 border-white bg-[linear-gradient(#fff,#fff)_padding-box,linear-gradient(135deg,#f58529,#dd2a7b,#8134af,#515bd4)_border-box] font-black text-white shadow-[inset_0_0_0_999px_rgba(17,24,39,0.74)]";
 const inputClass =
@@ -199,9 +199,14 @@ export default function App() {
   async function handleRegister(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const username = String(form.get("username") ?? "").trim();
+    const username = normalizeUsername(String(form.get("username") ?? ""));
     const displayName = String(form.get("displayName") ?? "").trim();
     const password = String(form.get("password") ?? "");
+
+    if (!isValidUsername(username)) {
+      setToast({ tone: "error", text: "Use a username, not an email address." });
+      return;
+    }
 
     setAuthBusy(true);
     setToast({ tone: "info", text: "Generating your encryption keys on this device." });
@@ -222,8 +227,13 @@ export default function App() {
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const username = String(form.get("username") ?? "").trim();
+    const username = normalizeUsername(String(form.get("username") ?? ""));
     const password = String(form.get("password") ?? "");
+
+    if (!isValidUsername(username)) {
+      setToast({ tone: "error", text: "Use your username, not your email address." });
+      return;
+    }
 
     setAuthBusy(true);
     setToast({ tone: "info", text: "Unlocking your private key in memory." });
@@ -369,7 +379,7 @@ export default function App() {
             </p>
             {results.map((user) => (
               <button
-                className="grid min-h-18 w-full cursor-pointer grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-0 bg-transparent p-2.5 text-left transition duration-200 ease-out hover:scale-[1.01] hover:bg-neutral-100 active:scale-[0.99]"
+                className="grid min-h-18 w-full cursor-pointer grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-0 bg-transparent p-2.5 text-left transition-colors duration-200 ease-out hover:bg-neutral-100"
                 key={user.id}
                 onClick={() => void startConversation(user)}
               >
@@ -394,7 +404,7 @@ export default function App() {
             </p>
             {conversations.map((conversation) => (
               <button
-                className={`grid min-h-18 w-full cursor-pointer grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-0 bg-transparent p-2.5 text-left transition duration-200 ease-out hover:scale-[1.01] hover:bg-neutral-100 active:scale-[0.99] ${
+                className={`grid min-h-18 w-full cursor-pointer grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-0 bg-transparent p-2.5 text-left transition-colors duration-200 ease-out hover:bg-neutral-100 ${
                   selected?.user_id === conversation.user_id ? "bg-neutral-100" : ""
                 }`}
                 key={conversation.user_id}
@@ -591,15 +601,21 @@ function AuthShell(props: {
           )}
           <label className="grid gap-1.5 text-left text-[13px] font-bold text-neutral-600">
             Username
-            <input
-              className={inputClass}
-              name="username"
-              autoComplete="username"
-              minLength={3}
-              maxLength={32}
-              pattern="[A-Za-z0-9_-]+"
-              required
-            />
+              <input
+                className={inputClass}
+                name="username"
+                autoComplete="username"
+                inputMode="text"
+                minLength={3}
+                maxLength={32}
+                pattern="[a-z0-9_-]+"
+                placeholder="godwin_goje"
+                title="Use 3-32 lowercase letters, numbers, underscores, or hyphens."
+                onInput={(event) => {
+                  event.currentTarget.value = normalizeUsername(event.currentTarget.value);
+                }}
+                required
+              />
           </label>
           <label className="grid gap-1.5 text-left text-[13px] font-bold text-neutral-600">
             Password
@@ -624,7 +640,7 @@ function AuthShell(props: {
         <div className="flex justify-center gap-1.5 border border-neutral-300 bg-white p-5 text-sm">
           {register ? "Have an account?" : "New here?"}
           <button
-            className="cursor-pointer border-0 bg-transparent font-extrabold text-[#0095f6] transition duration-200 ease-out hover:scale-105 hover:text-[#1877f2] active:scale-95"
+            className="cursor-pointer border-0 bg-transparent font-extrabold text-[#0095f6] transition-colors duration-200 ease-out hover:text-[#1877f2]"
             onClick={() => props.onMode(register ? "login" : "register")}
           >
             {register ? "Log in" : "Create account"}
@@ -678,4 +694,16 @@ function EmptyLine({ text }: { text: string }) {
 function readableError(error: unknown): string {
   if (error instanceof Error) return error.message;
   return "Something went wrong";
+}
+
+function normalizeUsername(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "")
+    .slice(0, 32);
+}
+
+function isValidUsername(value: string): boolean {
+  return /^[a-z0-9_-]{3,32}$/.test(value);
 }

@@ -182,6 +182,24 @@ async function errorMessage(response: Response): Promise<string> {
   try {
     const body = (await response.json()) as { detail?: unknown };
     if (typeof body.detail === "string") return body.detail;
+    if (Array.isArray(body.detail)) {
+      const firstMessage = body.detail
+        .map((item) => {
+          if (
+            item &&
+            typeof item === "object" &&
+            "msg" in item &&
+            typeof item.msg === "string"
+          ) {
+            return item.msg;
+          }
+
+          return null;
+        })
+        .find(Boolean);
+
+      if (firstMessage) return firstMessage;
+    }
   } catch {
     return `Request failed with status ${response.status}`;
   }
