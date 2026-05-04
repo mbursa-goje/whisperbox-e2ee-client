@@ -40,7 +40,9 @@ type Toast = { tone: "info" | "error"; text: string } | null;
 
 const emptyConversation: Conversation | null = null;
 const iconButton =
-  "grid h-10 w-10 cursor-pointer place-items-center rounded-full border-0 bg-transparent text-neutral-950 transition duration-200 ease-out hover:-translate-y-0.5 hover:bg-neutral-100 active:translate-y-0";
+  "grid h-10 w-10 cursor-pointer place-items-center rounded-full border-0 bg-white/80 text-[#8134af] shadow-sm ring-1 ring-[#dd2a7b]/15 transition duration-200 ease-out hover:-translate-y-0.5 hover:bg-white hover:text-[#fd1d1d] hover:shadow-md active:translate-y-0";
+const gradientIcon =
+  "grid place-items-center rounded-2xl bg-[linear-gradient(135deg,#f58529,#dd2a7b,#8134af,#515bd4)] text-white shadow-[0_16px_34px_rgba(221,42,123,0.24)]";
 const avatarClass =
   "grid h-13 w-13 shrink-0 place-items-center rounded-full border-2 border-white bg-[linear-gradient(#fff,#fff)_padding-box,linear-gradient(135deg,#f58529,#dd2a7b,#8134af,#515bd4)_border-box] font-black text-white shadow-[inset_0_0_0_999px_rgba(17,24,39,0.74)]";
 const inputClass =
@@ -344,42 +346,48 @@ export default function App() {
   }
 
   return (
-    <main className="min-h-screen bg-white text-neutral-950 md:grid md:grid-cols-[390px_minmax(0,1fr)]">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_8%_8%,rgba(245,133,41,0.22),transparent_28%),radial-gradient(circle_at_92%_16%,rgba(221,42,123,0.18),transparent_28%),radial-gradient(circle_at_55%_100%,rgba(81,91,212,0.18),transparent_32%),linear-gradient(145deg,#fff7fb,#ffffff_42%,#f5f8ff)] text-neutral-950 md:grid md:grid-cols-[390px_minmax(0,1fr)]">
       <aside
-        className={`min-h-screen flex-col border-r border-neutral-300 bg-white md:flex ${
+        className={`min-h-screen flex-col border-r border-white/70 bg-white/78 shadow-[20px_0_60px_rgba(129,52,175,0.08)] backdrop-blur-xl md:flex ${
           selected ? "hidden md:flex" : "flex"
         }`}
       >
-        <header className="flex min-h-19 items-center justify-between gap-3 border-b border-neutral-200 px-5 py-3.5">
-          <div>
-            <p className="m-0 text-xs font-extrabold tracking-normal text-neutral-500 uppercase">
+        <header className="flex min-h-22 items-center justify-between gap-3 border-b border-[#f6c2de]/70 bg-[linear-gradient(135deg,rgba(253,244,151,0.46),rgba(253,89,73,0.16)_38%,rgba(131,58,180,0.18))] px-5 py-4">
+          <div className="min-w-0">
+            <p className="m-0 text-xs font-extrabold tracking-normal text-[#dd2a7b] uppercase">
               WhisperBox
             </p>
-            <h1 className="m-0 text-[22px] font-bold">{session.user.display_name}</h1>
+            <h1 className="m-0 overflow-hidden bg-[linear-gradient(135deg,#111827,#8134af,#dd2a7b)] bg-clip-text text-[22px] font-black text-transparent text-ellipsis whitespace-nowrap">
+              {session.user.display_name}
+            </h1>
           </div>
           <button className={iconButton} aria-label="Log out" onClick={() => void handleLogout()}>
             <LogOut size={19} />
           </button>
         </header>
 
-        <label className="mx-4 mt-4 mb-2 flex items-center gap-2.5 rounded-[10px] border border-transparent bg-neutral-100 px-3.5 text-neutral-500 focus-within:border-neutral-400">
+        <div className="px-4 pt-4">
+          <div className="rounded-2xl bg-[linear-gradient(135deg,#f58529,#dd2a7b,#8134af,#515bd4)] p-[1px] shadow-[0_14px_34px_rgba(221,42,123,0.16)]">
+        <label className="flex items-center gap-2.5 rounded-2xl border border-transparent bg-white px-3.5 text-[#8134af] focus-within:border-white">
           <Search size={18} />
           <input
-            className="h-11 w-full border-0 bg-transparent outline-none"
+            className="h-12 w-full border-0 bg-transparent font-semibold outline-none placeholder:text-[#9b6aa8]"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search"
+            placeholder="Search username to start a chat"
           />
         </label>
+          </div>
+        </div>
 
         {query.trim().length > 0 ? (
-          <section className="grid gap-1 p-3">
-            <p className="m-0 px-2 pb-2 text-xs font-extrabold tracking-normal text-neutral-500 uppercase">
+          <section className="grid gap-2 p-3">
+            <p className="m-0 px-2 pb-1 text-xs font-extrabold tracking-normal text-[#dd2a7b] uppercase">
               People
             </p>
             {results.map((user) => (
               <button
-                className="grid min-h-18 w-full cursor-pointer grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-0 bg-transparent p-2.5 text-left transition-colors duration-200 ease-out hover:bg-neutral-100"
+                className="grid min-h-18 w-full cursor-pointer grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-transparent bg-white/60 p-2.5 text-left transition-colors duration-200 ease-out hover:border-[#f6c2de] hover:bg-white"
                 key={user.id}
                 onClick={() => void startConversation(user)}
               >
@@ -392,20 +400,41 @@ export default function App() {
                     @{user.username}
                   </small>
                 </span>
-                <UserPlus size={18} />
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-[#0095f6] text-white">
+                  <UserPlus size={18} />
+                </span>
               </button>
             ))}
-            {results.length === 0 && <EmptyLine text="No users yet" />}
+            {results.length === 0 && (
+              <div className="rounded-2xl border border-[#f6c2de] bg-white/70 p-4 text-sm font-bold text-[#8134af]">
+                No user found. Try their exact WhisperBox username.
+              </div>
+            )}
           </section>
         ) : (
-          <section className="grid gap-1 p-3">
-            <p className="m-0 px-2 pb-2 text-xs font-extrabold tracking-normal text-neutral-500 uppercase">
+          <section className="grid gap-2 p-3">
+            <div className="mx-1 my-2 rounded-3xl border border-[#f6c2de] bg-white/72 p-4 shadow-[0_16px_44px_rgba(129,52,175,0.08)]">
+              <div className="flex items-center gap-3">
+                <span className={`${gradientIcon} h-11 w-11`}>
+                  <Search size={20} />
+                </span>
+                <div>
+                  <p className="m-0 text-sm font-black text-[#8134af]">Start a message</p>
+                  <p className="m-0 text-xs font-bold text-[#9b6aa8]">
+                    Search a username above, tap the person, then type below.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p className="m-0 px-2 pb-1 text-xs font-extrabold tracking-normal text-[#dd2a7b] uppercase">
               Messages
             </p>
             {conversations.map((conversation) => (
               <button
-                className={`grid min-h-18 w-full cursor-pointer grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-0 bg-transparent p-2.5 text-left transition-colors duration-200 ease-out hover:bg-neutral-100 ${
-                  selected?.user_id === conversation.user_id ? "bg-neutral-100" : ""
+                className={`grid min-h-18 w-full cursor-pointer grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border p-2.5 text-left transition-colors duration-200 ease-out hover:border-[#f6c2de] hover:bg-white ${
+                  selected?.user_id === conversation.user_id
+                    ? "border-[#dd2a7b]/30 bg-white shadow-[0_12px_30px_rgba(221,42,123,0.12)]"
+                    : "border-transparent bg-white/54"
                 }`}
                 key={conversation.user_id}
                 onClick={() => setSelected(conversation)}
@@ -419,33 +448,39 @@ export default function App() {
                     @{conversation.username}
                   </small>
                 </span>
-                {onlineUsers.has(conversation.user_id) && (
-                  <i className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                )}
+                <span
+                  className={`h-2.5 w-2.5 rounded-full ${
+                    onlineUsers.has(conversation.user_id) ? "bg-emerald-500" : "bg-[#dd2a7b]/35"
+                  }`}
+                />
               </button>
             ))}
-            {conversations.length === 0 && <EmptyLine text="Search for someone to begin" />}
+            {conversations.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-[#dd2a7b]/35 bg-white/62 p-4 text-sm font-bold text-[#8134af]">
+                No conversations yet. Search for another account to send your first encrypted DM.
+              </div>
+            )}
           </section>
         )}
       </aside>
 
       <section
-        className={`min-h-screen min-w-0 flex-col bg-white md:flex ${
+        className={`min-h-screen min-w-0 flex-col bg-white/46 backdrop-blur-sm md:flex ${
           selected ? "flex" : "hidden md:flex"
         }`}
       >
         {selected ? (
           <>
-            <header className="flex min-h-19 items-center gap-3.5 border-b border-neutral-200 px-5 py-3.5">
+            <header className="flex min-h-22 items-center gap-3.5 border-b border-white/70 bg-white/76 px-5 py-4 shadow-[0_10px_40px_rgba(129,52,175,0.08)] backdrop-blur-xl">
               <button className={`${iconButton} md:hidden`} onClick={() => setSelected(null)}>
                 <ArrowLeft size={20} />
               </button>
               <Avatar name={activeName} />
               <div className="grid min-w-0 flex-1">
-                <h2 className="m-0 overflow-hidden text-[17px] font-bold text-ellipsis whitespace-nowrap">
+                <h2 className="m-0 overflow-hidden bg-[linear-gradient(135deg,#111827,#8134af,#dd2a7b)] bg-clip-text text-[17px] font-black text-transparent text-ellipsis whitespace-nowrap">
                   {activeName}
                 </h2>
-                <p className="m-0 flex items-center gap-1.5 text-xs font-bold text-neutral-500">
+                <p className="m-0 flex items-center gap-1.5 text-xs font-bold text-[#8134af]">
                   <LockKeyhole size={13} />
                   End-to-end encrypted
                 </p>
@@ -456,7 +491,7 @@ export default function App() {
               </button>
             </header>
 
-            <div className="flex flex-1 flex-col gap-2 overflow-auto bg-[radial-gradient(circle_at_top_left,rgba(245,133,41,0.16),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(81,91,212,0.14),transparent_34%),linear-gradient(rgba(255,255,255,0.95),rgba(255,255,255,0.95))] px-3.5 py-5 md:px-11">
+            <div className="flex flex-1 flex-col gap-2 overflow-auto bg-[radial-gradient(circle_at_top_left,rgba(245,133,41,0.24),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(81,91,212,0.22),transparent_34%),linear-gradient(rgba(255,255,255,0.72),rgba(255,255,255,0.82))] px-3.5 py-5 md:px-11">
               {busy && <EmptyLine text="Decrypting messages" />}
               {!busy &&
                 visibleMessages.map((message) => {
@@ -468,8 +503,8 @@ export default function App() {
                           !message.decryptable
                             ? "border border-red-200 bg-red-50 text-red-800"
                             : mine
-                              ? "border-0 bg-[#3797f0] text-white"
-                              : "border border-neutral-200 bg-white text-neutral-950"
+                              ? "border-0 bg-[linear-gradient(135deg,#0095f6,#6d5dfc,#dd2a7b)] text-white"
+                              : "border border-[#f6c2de] bg-white/90 text-neutral-950"
                         }`}
                       >
                         <p className="m-0 break-words">{message.text}</p>
@@ -493,26 +528,32 @@ export default function App() {
                   );
                 })}
               {!busy && visibleMessages.length === 0 && (
-                <div className="grid flex-1 place-items-center content-center gap-2.5 text-center text-neutral-500">
-                  <ShieldCheck size={34} />
-                  <h3 className="m-0 text-lg font-bold text-neutral-950">Private room created</h3>
-                  <p className="m-0">Messages are encrypted before they leave this browser.</p>
+                <div className="grid flex-1 place-items-center content-center gap-3 text-center">
+                  <span className={`${gradientIcon} h-16 w-16 rounded-3xl`}>
+                    <ShieldCheck size={32} />
+                  </span>
+                  <h3 className="m-0 bg-[linear-gradient(135deg,#8134af,#dd2a7b)] bg-clip-text text-xl font-black text-transparent">
+                    Private room created
+                  </h3>
+                  <p className="m-0 max-w-sm font-bold text-[#8134af]">
+                    Type a message below. It is encrypted before it leaves this browser.
+                  </p>
                 </div>
               )}
             </div>
 
             <form
-              className="grid grid-cols-[minmax(0,1fr)_44px] gap-2.5 border-t border-neutral-200 px-5 pt-4 pb-5"
+              className="grid grid-cols-[minmax(0,1fr)_44px] gap-2.5 border-t border-white/70 bg-white/78 px-5 pt-4 pb-5 backdrop-blur-xl"
               onSubmit={sendMessage}
             >
               <input
-                className="h-11 w-full rounded-full border border-neutral-300 bg-white px-4.5 outline-none focus:border-neutral-400"
+                className="h-11 w-full rounded-full border border-[#f6c2de] bg-white px-4.5 font-semibold outline-none placeholder:text-[#9b6aa8] focus:border-[#dd2a7b]"
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 placeholder="Message..."
               />
               <button
-                className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border-0 bg-[#0095f6] text-white transition duration-200 ease-out hover:scale-105 hover:bg-[#1877f2] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+                className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border-0 bg-[linear-gradient(135deg,#0095f6,#6d5dfc,#dd2a7b)] text-white shadow-[0_14px_30px_rgba(221,42,123,0.24)] transition duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(221,42,123,0.32)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
                 disabled={!draft.trim()}
                 aria-label="Send message"
               >
@@ -521,10 +562,16 @@ export default function App() {
             </form>
           </>
         ) : (
-          <div className="grid flex-1 place-items-center content-center gap-2.5 text-center text-neutral-500">
-            <MessageCircle size={56} />
-            <h2 className="m-0 text-xl font-bold text-neutral-950">Your messages</h2>
-            <p className="m-0">Search for a user and start an encrypted conversation.</p>
+          <div className="grid flex-1 place-items-center content-center gap-4 p-8 text-center">
+            <span className={`${gradientIcon} h-20 w-20 rounded-[28px]`}>
+              <MessageCircle size={42} />
+            </span>
+            <h2 className="m-0 bg-[linear-gradient(135deg,#8134af,#dd2a7b,#f58529)] bg-clip-text text-3xl font-black text-transparent">
+              Your encrypted DMs
+            </h2>
+            <p className="m-0 max-w-md text-base font-bold text-[#8134af]">
+              Search for another WhisperBox username in the left panel, select them, then send a message.
+            </p>
           </div>
         )}
       </section>
