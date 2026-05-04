@@ -656,7 +656,6 @@ function AuthShell(props: {
                 minLength={3}
                 maxLength={32}
                 pattern="[a-z0-9_-]+"
-                placeholder="godwin_goje"
                 title="Use 3-32 lowercase letters, numbers, underscores, or hyphens."
                 onInput={(event) => {
                   event.currentTarget.value = normalizeUsername(event.currentTarget.value);
