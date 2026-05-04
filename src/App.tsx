@@ -567,9 +567,10 @@ function AuthShell(props: {
   const register = props.mode === "register";
 
   return (
-    <main className="grid min-h-screen grid-cols-1 items-center justify-center gap-14 bg-[radial-gradient(circle_at_18%_18%,rgba(253,29,29,0.16),transparent_30%),radial-gradient(circle_at_68%_72%,rgba(131,58,180,0.16),transparent_28%),linear-gradient(145deg,rgba(250,250,250,0.94),rgba(255,255,255,0.98))] px-3.5 py-6 text-neutral-950 md:grid-cols-[minmax(320px,0.9fr)_minmax(340px,430px)] md:p-11">
-      <section className="hidden justify-end md:flex">
-        <div className="relative aspect-[9/16] w-[min(330px,80vw)] overflow-hidden rounded-[42px] border-[10px] border-slate-800 bg-white px-4.5 py-7 shadow-[0_36px_90px_rgba(15,23,42,0.25)]">
+    <main className="grid min-h-screen place-items-center overflow-hidden bg-[radial-gradient(circle_at_18%_18%,rgba(253,29,29,0.16),transparent_30%),radial-gradient(circle_at_68%_72%,rgba(131,58,180,0.16),transparent_28%),linear-gradient(145deg,rgba(250,250,250,0.94),rgba(255,255,255,0.98))] px-3.5 py-5 text-neutral-950">
+      <div className="grid w-full max-w-[920px] grid-cols-1 items-center justify-center gap-8 md:grid-cols-[300px_430px] md:gap-12 lg:max-w-[980px]">
+      <section className="hidden justify-center md:flex">
+        <div className="relative aspect-[9/16] h-[min(620px,calc(100vh-56px))] overflow-hidden rounded-[42px] border-[10px] border-slate-800 bg-white px-4.5 py-7 shadow-[0_36px_90px_rgba(15,23,42,0.25)]">
           <div className="flex items-center gap-2.5 border-b border-neutral-200 pb-4.5">
             <span className="h-9.5 w-9.5 rounded-full bg-linear-135 from-[#fd5949] to-[#833ab4]" />
             <p className="m-0 text-sm font-bold text-neutral-500">ciphertext only</p>
@@ -580,7 +581,7 @@ function AuthShell(props: {
         </div>
       </section>
 
-      <section className="grid gap-3">
+      <section className="grid w-full gap-3">
         <form
           className="grid gap-4 border border-neutral-300 bg-white p-8 text-center"
           onSubmit={register ? props.onRegister : props.onLogin}
@@ -660,6 +661,7 @@ function AuthShell(props: {
           </div>
         )}
       </section>
+      </div>
     </main>
   );
 }
