@@ -161,11 +161,19 @@ async function request<T = unknown>(
     headers.set("Authorization", `Bearer ${options.accessToken}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    });
+  } catch {
+    throw new Error(
+      "WhisperBox cannot reach the secure messaging server. Check your internet connection, refresh the page, and try again.",
+    );
+  }
 
   if (!response.ok) {
     throw new Error(await errorMessage(response));
