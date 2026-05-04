@@ -1839,8 +1839,22 @@ Lines 336-420 render the sidebar. It includes current user identity, logout,
 search, search results, conversations, active row styling, and online dots.
 
 Lines 422-520 render the chat panel. It includes mobile back navigation, avatar,
-encrypted header, socket status, message bubbles, empty secure state, and
+encrypted header, socket status, slim message bubbles, empty secure state, and
 composer.
+
+The message bubble render is intentionally restrained. Successful messages show
+only the message body. Earlier versions displayed an `encrypted` label under
+every sent message, but that made the bubble visually noisy and increased its
+height. The final UI keeps the encryption promise in the chat header and empty
+state, while each bubble stays compact enough to feel like a normal messaging
+app. Failed sends are the exception: they still render a small `failed` line
+with an alert icon because the user needs to know that action did not complete.
+
+Outgoing bubbles use a clean blue fill instead of a multi-color gradient. The
+rest of the dashboard already carries the WhisperBox color system through
+headers, icons, search, and empty states. Using a simpler message fill improves
+legibility, removes the blurry color-sheet effect, and makes short messages like
+`Hey` look intentional rather than over-designed.
 
 Lines 522-535 render toasts. Error toasts are red; info toasts are neutral.
 
@@ -1876,7 +1890,7 @@ The UI borrows the Instagram Direct structure:
 - Auth card centered beside a phone-like preview on desktop.
 - Left rail for profile, search, and conversations.
 - Main panel for selected chat.
-- Rounded bubbles.
+- Slim rounded bubbles that show message text only unless a send fails.
 - Blue outgoing messages.
 - Neutral incoming messages.
 - Mobile switches between list and chat instead of squeezing both.
@@ -1906,8 +1920,9 @@ to ciphertext before `socketRef.current?.send` or `sendMessageFallback`.
 
 UI and UX:
 The app includes secure indicators, loading states, search empty states,
-decryption failure bubbles, send failure states, responsive layout, and a
-familiar direct-message interaction model.
+decryption failure bubbles, send failure states, compact message bubbles without
+per-message encryption labels, responsive layout, and a familiar direct-message
+interaction model.
 
 Known limitations:
 The implementation does not provide full forward secrecy because long-lived RSA

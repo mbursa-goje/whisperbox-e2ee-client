@@ -1,7 +1,6 @@
 import {
   AlertCircle,
   ArrowLeft,
-  CheckCheck,
   LockKeyhole,
   LogOut,
   MessageCircle,
@@ -499,30 +498,20 @@ export default function App() {
                   return (
                     <article className={`flex ${mine ? "justify-end" : ""}`} key={message.id}>
                       <div
-                        className={`max-w-[88%] overflow-wrap-anywhere rounded-[22px] px-3.5 pt-2.5 pb-2 shadow-[0_8px_30px_rgba(15,23,42,0.04)] md:max-w-[min(620px,78%)] ${
+                        className={`max-w-[88%] overflow-wrap-anywhere rounded-[18px] px-3.5 py-2 shadow-[0_8px_24px_rgba(15,23,42,0.04)] md:max-w-[min(620px,78%)] ${
                           !message.decryptable
                             ? "border border-red-200 bg-red-50 text-red-800"
                             : mine
-                              ? "border-0 bg-[linear-gradient(135deg,#0095f6,#6d5dfc,#dd2a7b)] text-white"
+                              ? "border-0 bg-[#3797f0] text-white"
                               : "border border-[#f6c2de] bg-white/90 text-neutral-950"
                         }`}
                       >
                         <p className="m-0 break-words">{message.text}</p>
-                        <span
-                          className={`mt-1 flex items-center gap-1 text-[11px] font-extrabold ${
-                            mine && message.decryptable ? "text-white/80" : "text-neutral-500"
-                          }`}
-                        >
-                          {message.failed ? (
-                            <>
-                              <AlertCircle size={12} /> failed
-                            </>
-                          ) : (
-                            <>
-                              <CheckCheck size={12} /> encrypted
-                            </>
-                          )}
-                        </span>
+                        {message.failed && (
+                          <span className="mt-1 flex items-center gap-1 text-[11px] font-extrabold text-red-700">
+                            <AlertCircle size={12} /> failed
+                          </span>
+                        )}
                       </div>
                     </article>
                   );
