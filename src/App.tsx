@@ -134,7 +134,7 @@ export default function App() {
           setView("login");
           setToast({
             tone: "info",
-            text: "Session found. Enter your password to unlock messages.",
+            text: "Welcome back to WhisperBox. Log in to open your encrypted inbox.",
           });
         }
       })
@@ -211,14 +211,14 @@ export default function App() {
     }
 
     setAuthBusy(true);
-    setToast({ tone: "info", text: "Generating your encryption keys on this device." });
+    setToast({ tone: "info", text: "Setting up your private WhisperBox inbox." });
 
     try {
       const result = await registerUser({ username, displayName, password });
       setSession(result.session);
       setPrivateKey(result.privateKey);
       setView("chat");
-      setToast({ tone: "info", text: "Vault created. Plaintext stays on your device." });
+      setToast({ tone: "info", text: "Your WhisperBox is ready. Start a private conversation." });
     } catch (error) {
       setToast({ tone: "error", text: readableError(error) });
     } finally {
@@ -238,14 +238,14 @@ export default function App() {
     }
 
     setAuthBusy(true);
-    setToast({ tone: "info", text: "Unlocking your private key in memory." });
+    setToast({ tone: "info", text: "Opening your encrypted WhisperBox inbox." });
 
     try {
       const result = await loginUser({ username, password });
       setSession(result.session);
       setPrivateKey(result.privateKey);
       setView("chat");
-      setToast({ tone: "info", text: "Encryption key unlocked for this session." });
+      setToast({ tone: "info", text: "You are in. Pick a conversation or search for someone." });
     } catch (error) {
       setToast({ tone: "error", text: readableError(error) });
     } finally {
