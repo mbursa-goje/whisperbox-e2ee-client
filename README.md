@@ -11,6 +11,19 @@ that feels like a familiar messaging app while remaining branded as WhisperBox.
 Styling uses Tailwind CSS v4 through the official Vite plugin, with no competing
 component stylesheet overriding Tailwind utilities.
 
+## What The App Does
+
+- Creates accounts against the shared WhisperBox backend.
+- Generates RSA-OAEP keys in the browser before registration.
+- Stores public keys on the backend.
+- Keeps raw private keys off the backend.
+- Wraps private keys with a password-derived AES-KW key.
+- Searches real backend users by username.
+- Sends encrypted direct messages over WebSocket when available.
+- Falls back to `POST /messages` when realtime delivery is unavailable.
+- Decrypts incoming and sent-message history locally.
+- Shows clear failure states when network requests or decryption fail.
+
 ## Run Locally
 
 ```bash
@@ -23,6 +36,46 @@ Build for production:
 ```bash
 npm run build
 ```
+
+The local app runs at:
+
+```text
+http://127.0.0.1:5173
+```
+
+## How To Test Messaging
+
+The app does not use localStorage as a fake user database. Users are created on
+the live backend at `https://whisperbox.koyeb.app`, so deployed copies of this
+frontend share the same user pool.
+
+1. Open the app in one browser profile.
+2. Create account A with a username such as `alice_test_01`.
+3. Open the app in another browser profile, another browser, or an incognito
+   window.
+4. Create account B with a username such as `bob_test_01`.
+5. Return to account A.
+6. Use the dashboard search field to search for `bob_test_01`.
+7. Select Bob from the search result.
+8. Type a message in the composer and send it.
+9. Log in as Bob to load and decrypt the message.
+
+Usernames are not email addresses. They must be 3-32 lowercase letters, numbers,
+underscores, or hyphens. Examples:
+
+```text
+godwin_goje
+alice_test
+bob-2026
+```
+
+## UI Notes
+
+The auth screens and dashboard use the same bright WhisperBox visual language:
+colorful icons, a clear search-first messaging flow, and compact chat bubbles.
+Message bubbles intentionally do not show a repeated `encrypted` label; the
+encryption status lives in the chat header and empty states so the conversation
+itself stays readable.
 
 ## Tailwind Setup
 
@@ -86,9 +139,10 @@ flowchart LR
 
 Registration starts in the browser. The client creates a 2048-bit RSA-OAEP
 keypair, creates a random PBKDF2 salt, derives an AES-KW wrapping key from the
-user's password, wraps the private RSA key, and sends only the public key,
-wrapped private key, salt, username, display name, and password to the backend.
-The raw private key never leaves the device.
+user's password, exports and pads the private RSA key to satisfy AES-KW's 8-byte
+block requirement, wraps that padded private-key carrier, and sends only the
+public key, wrapped private key, salt, username, display name, and password to
+the backend. The raw private key never leaves the device.
 
 Login restores the same cryptographic session. The backend returns the wrapped
 private key and PBKDF2 salt. The user password derives the AES-KW wrapping key
@@ -140,7 +194,20 @@ It does not persist plaintext private keys, passwords, or plaintext messages.
 - WebSocket close code `4001` refreshes the token and reconnects.
 - WebSocket close code `4003` clears the session and returns to login.
 - Decryption failures are visible, contained UI states.
+- Build verification passes with `npm run build`.
+- Lint verification passes with `npm run lint`.
 
+## Documentation
+
+The detailed implementation walkthrough is in:
+
+```text
+docs/code-walkthrough.md
+```
+
+It explains the mental model, data flow, crypto layer, API layer, WebSocket
+handling, IndexedDB session storage, Tailwind UI, toast behavior, and the
+message bubble decisions in depth.
 
 ## Commit Convention
 
