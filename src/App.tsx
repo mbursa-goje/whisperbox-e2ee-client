@@ -40,7 +40,7 @@ type Toast = { tone: "info" | "error"; text: string } | null;
 
 const emptyConversation: Conversation | null = null;
 const iconButton =
-  "grid h-10 w-10 place-items-center rounded-full border-0 bg-transparent text-neutral-950 transition hover:bg-neutral-100";
+  "grid h-10 w-10 cursor-pointer place-items-center rounded-full border-0 bg-transparent text-neutral-950 transition duration-200 ease-out hover:scale-105 hover:bg-neutral-100 active:scale-95";
 const avatarClass =
   "grid h-13 w-13 shrink-0 place-items-center rounded-full border-2 border-white bg-[linear-gradient(#fff,#fff)_padding-box,linear-gradient(135deg,#f58529,#dd2a7b,#8134af,#515bd4)_border-box] font-black text-white shadow-[inset_0_0_0_999px_rgba(17,24,39,0.74)]";
 const inputClass =
@@ -369,7 +369,7 @@ export default function App() {
             </p>
             {results.map((user) => (
               <button
-                className="grid min-h-18 w-full grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-0 bg-transparent p-2.5 text-left transition hover:bg-neutral-100"
+                className="grid min-h-18 w-full cursor-pointer grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-0 bg-transparent p-2.5 text-left transition duration-200 ease-out hover:scale-[1.01] hover:bg-neutral-100 active:scale-[0.99]"
                 key={user.id}
                 onClick={() => void startConversation(user)}
               >
@@ -394,7 +394,7 @@ export default function App() {
             </p>
             {conversations.map((conversation) => (
               <button
-                className={`grid min-h-18 w-full grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-0 bg-transparent p-2.5 text-left transition hover:bg-neutral-100 ${
+                className={`grid min-h-18 w-full cursor-pointer grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-0 bg-transparent p-2.5 text-left transition duration-200 ease-out hover:scale-[1.01] hover:bg-neutral-100 active:scale-[0.99] ${
                   selected?.user_id === conversation.user_id ? "bg-neutral-100" : ""
                 }`}
                 key={conversation.user_id}
@@ -502,7 +502,7 @@ export default function App() {
                 placeholder="Message..."
               />
               <button
-                className="grid h-11 w-11 place-items-center rounded-full border-0 bg-[#0095f6] text-white disabled:opacity-40"
+                className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border-0 bg-[#0095f6] text-white transition duration-200 ease-out hover:scale-105 hover:bg-[#1877f2] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
                 disabled={!draft.trim()}
                 aria-label="Send message"
               >
@@ -614,7 +614,7 @@ function AuthShell(props: {
             />
           </label>
           <button
-            className="mt-1.5 h-11 rounded-lg border-0 bg-[#0095f6] font-extrabold text-white disabled:opacity-60"
+            className="mt-1.5 h-11 cursor-pointer rounded-lg border-0 bg-[#0095f6] font-extrabold text-white transition duration-200 ease-out hover:scale-[1.01] hover:bg-[#1877f2] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
             disabled={props.busy}
           >
             {props.busy ? "Working..." : register ? "Create account" : "Log in"}
@@ -624,7 +624,7 @@ function AuthShell(props: {
         <div className="flex justify-center gap-1.5 border border-neutral-300 bg-white p-5 text-sm">
           {register ? "Have an account?" : "New here?"}
           <button
-            className="border-0 bg-transparent font-extrabold text-[#0095f6]"
+            className="cursor-pointer border-0 bg-transparent font-extrabold text-[#0095f6] transition duration-200 ease-out hover:scale-105 hover:text-[#1877f2] active:scale-95"
             onClick={() => props.onMode(register ? "login" : "register")}
           >
             {register ? "Log in" : "Create account"}

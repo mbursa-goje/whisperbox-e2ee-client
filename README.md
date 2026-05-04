@@ -141,6 +141,7 @@ It does not persist plaintext private keys, passwords, or plaintext messages.
 - WebSocket close code `4003` clears the session and returns to login.
 - Decryption failures are visible, contained UI states.
 
+
 ## Commit Convention
 
 This repository uses Conventional Commits:

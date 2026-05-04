@@ -20,6 +20,7 @@ const RSA_IMPORT_PARAMS: RsaHashedImportParams = {
 };
 
 const PBKDF2_ITERATIONS = 250_000;
+const AES_KW_BLOCK_BYTES = 8;
 
 export type RegistrationKeyBundle = {
   publicKey: string;
@@ -38,12 +39,7 @@ export async function createRegistrationKeyBundle(
   const salt = crypto.getRandomValues(new Uint8Array(new ArrayBuffer(16)));
   const wrappingKey = await deriveWrappingKey(password, salt);
   const publicKey = await exportPublicKey(pair.publicKey);
-  const wrappedPrivateKey = await crypto.subtle.wrapKey(
-    "pkcs8",
-    pair.privateKey,
-    wrappingKey,
-    "AES-KW",
-  );
+  const wrappedPrivateKey = await wrapPrivateKey(pair.privateKey, wrappingKey);
 
   return {
     publicKey,
@@ -61,11 +57,21 @@ export async function unlockPrivateKey(
   const salt = base64ToBytes(pbkdf2Salt);
   const wrappingKey = await deriveWrappingKey(password, salt);
 
-  return crypto.subtle.unwrapKey(
-    "pkcs8",
+  const paddedPrivateKeyCarrier = await crypto.subtle.unwrapKey(
+    "raw",
     toArrayBuffer(base64ToBytes(wrappedPrivateKey)),
     wrappingKey,
     "AES-KW",
+    { name: "HMAC", hash: "SHA-256" },
+    true,
+    ["sign"],
+  );
+  const paddedPkcs8 = await crypto.subtle.exportKey("raw", paddedPrivateKeyCarrier);
+  const pkcs8 = removeAesKwPadding(new Uint8Array(paddedPkcs8));
+
+  return crypto.subtle.importKey(
+    "pkcs8",
+    pkcs8,
     RSA_IMPORT_PARAMS,
     false,
     ["decrypt"],
@@ -143,6 +149,28 @@ async function exportPublicKey(publicKey: CryptoKey): Promise<string> {
   return bytesToBase64(spki);
 }
 
+async function wrapPrivateKey(
+  privateKey: CryptoKey,
+  wrappingKey: CryptoKey,
+): Promise<ArrayBuffer> {
+  const pkcs8 = await crypto.subtle.exportKey("pkcs8", privateKey);
+  const paddedPkcs8 = addAesKwPadding(new Uint8Array(pkcs8));
+  const paddedPrivateKeyCarrier = await crypto.subtle.importKey(
+    "raw",
+    paddedPkcs8,
+    { name: "HMAC", hash: "SHA-256" },
+    true,
+    ["sign"],
+  );
+
+  return crypto.subtle.wrapKey(
+    "raw",
+    paddedPrivateKeyCarrier,
+    wrappingKey,
+    "AES-KW",
+  );
+}
+
 async function importPublicKey(publicKeyBase64: string): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     "spki",
@@ -177,4 +205,23 @@ async function deriveWrappingKey(
     false,
     ["wrapKey", "unwrapKey"],
   );
+}
+
+function addAesKwPadding(bytes: Uint8Array): ArrayBuffer {
+  const paddingLength = AES_KW_BLOCK_BYTES - (bytes.byteLength % AES_KW_BLOCK_BYTES || AES_KW_BLOCK_BYTES);
+  const padded = new Uint8Array(bytes.byteLength + paddingLength + AES_KW_BLOCK_BYTES);
+  const view = new DataView(padded.buffer);
+
+  view.setUint32(0, bytes.byteLength);
+  padded.set(bytes, AES_KW_BLOCK_BYTES);
+
+  return padded.buffer;
+}
+
+function removeAesKwPadding(bytes: Uint8Array): ArrayBuffer {
+  const view = new DataView(toArrayBuffer(bytes.slice(0, AES_KW_BLOCK_BYTES)));
+  const originalLength = view.getUint32(0);
+  const unpadded = bytes.slice(AES_KW_BLOCK_BYTES, AES_KW_BLOCK_BYTES + originalLength);
+
+  return toArrayBuffer(unpadded);
 }
