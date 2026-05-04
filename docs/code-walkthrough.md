@@ -1856,7 +1856,11 @@ headers, icons, search, and empty states. Using a simpler message fill improves
 legibility, removes the blurry color-sheet effect, and makes short messages like
 `Hey` look intentional rather than over-designed.
 
-Lines 522-535 render toasts. Error toasts are red; info toasts are neutral.
+Lines 522-535 render toasts. Toasts are positioned at the top-right instead of
+the bottom-right so they do not cover the chat composer while the user is typing.
+Error toasts are red and remain visible because they require attention. Info
+toasts are neutral and are cleared when the user opens a conversation or starts
+typing, because they should guide the next action without blocking it.
 
 ### Helper Components
 

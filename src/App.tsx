@@ -181,8 +181,11 @@ export default function App() {
 
   useEffect(() => {
     if (!session || !privateKey || !selected) return;
+    if (toast?.tone === "info") {
+      setToast(null);
+    }
     void loadThread(selected);
-  }, [loadThread, privateKey, selected, session]);
+  }, [loadThread, privateKey, selected, session, toast?.tone]);
 
   useEffect(() => {
     if (!session) return;
@@ -268,6 +271,7 @@ export default function App() {
       last_message_at: new Date().toISOString(),
     };
     setSelected(conversation);
+    setToast(null);
     setConversations((current) => [
       conversation,
       ...current.filter((item) => item.user_id !== user.id),
@@ -436,7 +440,10 @@ export default function App() {
                     : "border-transparent bg-white/54"
                 }`}
                 key={conversation.user_id}
-                onClick={() => setSelected(conversation)}
+                  onClick={() => {
+                    setSelected(conversation);
+                    setToast(null);
+                  }}
               >
                 <Avatar name={conversation.display_name} />
                 <span className="grid min-w-0">
@@ -538,7 +545,10 @@ export default function App() {
               <input
                 className="h-11 w-full rounded-full border border-[#f6c2de] bg-white px-4.5 font-semibold outline-none placeholder:text-[#9b6aa8] focus:border-[#dd2a7b]"
                 value={draft}
-                onChange={(event) => setDraft(event.target.value)}
+                onChange={(event) => {
+                  setDraft(event.target.value);
+                  if (toast?.tone === "info") setToast(null);
+                }}
                 placeholder="Message..."
               />
               <button
@@ -567,7 +577,7 @@ export default function App() {
 
       {toast && (
         <div
-          className={`fixed right-4 bottom-4 flex max-w-[calc(100vw-36px)] items-center gap-2 rounded-xl border px-3.5 py-3 text-sm font-bold shadow-[0_18px_50px_rgba(15,23,42,0.14)] md:max-w-[430px] ${
+          className={`fixed top-4 right-4 z-50 flex max-w-[calc(100vw-36px)] items-center gap-2 rounded-xl border px-3.5 py-3 text-sm font-bold shadow-[0_18px_50px_rgba(15,23,42,0.14)] md:max-w-[430px] ${
             toast.tone === "error"
               ? "border-red-200 bg-red-50 text-red-800"
               : "border-neutral-300 bg-white text-neutral-950"
