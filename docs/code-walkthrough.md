@@ -1666,6 +1666,482 @@ conversation state an explicit type.
 Lines 42-47 define repeated Tailwind class strings. This avoids repeating long
 utility lists for every icon button, avatar, and auth input.
 
+## React Hooks In `App.tsx`, Slowly
+
+This app uses five React hooks:
+
+- `useState`
+- `useRef`
+- `useMemo`
+- `useCallback`
+- `useEffect`
+
+They are not interchangeable. Each one solves a different kind of problem.
+
+### `useState`: reactive memory that changes the screen
+
+`useState` stores values that should cause the component to render again when
+they change.
+
+The simplest mental model is:
+
+```text
+state changes
+  -> React re-renders the component
+  -> JSX is recalculated
+  -> the screen reflects the new value
+```
+
+In `App.tsx`, every piece of UI or session data that should affect rendering is
+stored in state.
+
+```ts
+const [view, setView] = useState<View>("login");
+```
+
+`view` decides which major screen the user sees: login, register, or chat. When
+`setView("chat")` runs after successful auth, React re-renders and the chat
+dashboard appears.
+
+```ts
+const [booting, setBooting] = useState(true);
+```
+
+`booting` means the app is still checking IndexedDB for a saved session. While
+it is true, the app renders `Splash`. Once IndexedDB finishes, `setBooting(false)`
+lets the app render auth or chat.
+
+```ts
+const [session, setSession] = useState<SessionRecord | null>(null);
+```
+
+`session` stores access token, refresh token, expiry time, and user profile. It
+is reactive because many UI decisions depend on whether a session exists. It is
+also used by API calls and WebSocket setup.
+
+```ts
+const [privateKey, setPrivateKey] = useState<CryptoKey | null>(null);
+```
+
+`privateKey` stores the unwrapped RSA private key in memory. It is state because
+the app should enter decrypt-capable chat mode only after the key exists. This
+is also why clearing it on logout matters: once it becomes `null`, the UI can no
+longer decrypt messages.
+
+```ts
+const [conversations, setConversations] = useState<Conversation[]>([]);
+```
+
+`conversations` powers the left rail. When it changes, the sidebar list changes.
+
+```ts
+const [selected, setSelected] = useState<Conversation | null>(emptyConversation);
+```
+
+`selected` is the active chat. If it is `null`, the main panel shows the empty
+"Your encrypted DMs" state. If it contains a conversation, the app loads that
+thread and shows the composer.
+
+```ts
+const [messages, setMessages] = useState<DecryptedMessage[]>([]);
+```
+
+`messages` is the already-decrypted UI representation of history. It can contain
+real plaintext, failure placeholders, optimistic messages, or failed sends.
+
+```ts
+const [query, setQuery] = useState("");
+```
+
+`query` stores the search box value. Every keystroke updates this state and the
+search effect reacts to it after a short debounce.
+
+```ts
+const [results, setResults] = useState<PublicUser[]>([]);
+```
+
+`results` stores search matches from the backend.
+
+```ts
+const [draft, setDraft] = useState("");
+```
+
+`draft` stores the current message text in the composer. This is plaintext, so
+it lives only in browser memory and is cleared after send.
+
+```ts
+const [toast, setToast] = useState<Toast>(null);
+```
+
+`toast` stores temporary feedback. Because it is state, setting it causes the
+toast component to appear or disappear.
+
+```ts
+const [busy, setBusy] = useState(false);
+const [authBusy, setAuthBusy] = useState(false);
+```
+
+These are loading flags. `busy` is for thread loading/decryption. `authBusy` is
+for login/register submit state.
+
+```ts
+const [socketStatus, setSocketStatus] = useState<"connecting" | "online" | "offline">("offline");
+```
+
+This stores realtime connection state for the status pill.
+
+```ts
+const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+```
+
+This stores presence notifications. It is a `Set` because membership checks like
+`onlineUsers.has(userId)` are direct and readable.
+
+Why not store everything in plain variables? Because plain variables reset on
+every render and do not trigger re-rendering. `useState` is for values that the
+screen must react to.
+
+### `useRef`: mutable memory that does not re-render
+
+`useRef` stores a value across renders without causing a render when it changes.
+
+In this app:
+
+```ts
+const socketRef = useRef<WhisperSocket | null>(null);
+```
+
+The WebSocket object is not UI by itself. The user does not need React to render
+every time the socket instance mutates internally. The app only needs a stable
+place to keep the current socket so functions like `sendMessage` and `handleLogout`
+can access it.
+
+The mental model is:
+
+```text
+state changes -> screen updates
+ref changes   -> screen does not update
+```
+
+That distinction is important for WebSocket objects. A socket is an imperative
+browser resource. It opens, closes, sends frames, receives frames, and stores
+internal ready state. React should not rebuild the UI every time that object
+changes internally.
+
+The code writes to the ref here:
+
+```ts
+socketRef.current = socket;
+```
+
+It reads from the ref here:
+
+```ts
+socketRef.current?.close();
+socketRef.current?.updateSession(refreshed);
+socketRef.current?.send(selected.user_id, payload);
+```
+
+If `socketRef` were state instead, assigning the socket would trigger extra
+renders and could make the socket lifecycle harder to reason about. `useRef` is
+the right tool because the app needs persistence without reactivity.
+
+### `useMemo`: cached computed value
+
+`useMemo` caches the result of a computation between renders.
+
+In this app:
+
+```ts
+const visibleMessages = useMemo(
+  () => [...messages].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at)),
+  [messages],
+);
+```
+
+`messages` is stored in whatever order it arrives. History from the API comes
+newest first, realtime messages append as they arrive, and optimistic messages
+are inserted locally. The UI wants oldest-to-newest display order.
+
+The function inside `useMemo`:
+
+1. Copies `messages` with `[...messages]`.
+2. Sorts the copy by `created_at`.
+3. Returns the sorted array.
+
+The copy is important because `Array.prototype.sort` mutates the array. Mutating
+React state directly is a bug. Copying first keeps `messages` immutable.
+
+The dependency array is:
+
+```ts
+[messages]
+```
+
+That means React reuses the previous sorted result unless `messages` changes.
+If a user types in the composer, `draft` changes and the component re-renders,
+but `visibleMessages` does not need to sort again because `messages` did not
+change.
+
+Important distinction:
+
+```text
+useMemo caches a value
+useCallback caches a function
+```
+
+Here, `visibleMessages` is a value, so `useMemo` is the correct hook.
+
+### `useCallback`: cached function identity
+
+`useCallback` caches the function itself between renders. It does not cache the
+function's result.
+
+React recreates functions during every render by default. That is usually fine.
+But in this app, some functions are dependencies of effects. If those functions
+changed identity on every render, the effects would rerun too often.
+
+The mental model is:
+
+```text
+component renders
+  -> ordinary inline function is created again
+  -> dependency array sees a new function reference
+  -> effect may run again
+```
+
+`useCallback` says:
+
+```text
+reuse this function reference until its dependencies change
+```
+
+#### `handleLogout`
+
+```ts
+const handleLogout = useCallback(async () => {
+  socketRef.current?.close();
+  if (session) await logout(session);
+  setSession(null);
+  setPrivateKey(null);
+  setSelected(null);
+  setMessages([]);
+  setConversations([]);
+  setView("login");
+}, [session]);
+```
+
+This function depends on `session` because it needs the current token to call
+`logout(session)`. If `session` changes, React creates a new logout function.
+If only `draft` changes while typing, React reuses the old logout function.
+
+This matters because `handleLogout` is used inside effects and WebSocket
+handlers. Stable identity prevents unnecessary effect cleanup/setup loops.
+
+#### `decryptForCurrentUser`
+
+```ts
+const decryptForCurrentUser = useCallback(
+  async (message: MessageResponse): Promise<DecryptedMessage> => {
+    ...
+  },
+  [privateKey, session],
+);
+```
+
+This function depends on `privateKey` and `session`. It needs the private key to
+decrypt, and it needs the session user ID to choose whether to use
+`encryptedKey` or `encryptedKeyForSelf`.
+
+If either the session or private key changes, the decryption logic must be
+recreated because it closes over new values. If unrelated UI state changes, the
+same function can be reused.
+
+#### `receiveRealtimeMessage`
+
+```ts
+const receiveRealtimeMessage = useCallback(
+  async (message: MessageResponse) => {
+    const decrypted = await decryptForCurrentUser(message);
+    setMessages((current) => [...current.filter((item) => item.id !== message.id), decrypted]);
+    if (session) void loadConversations(session);
+  },
+  [decryptForCurrentUser, session],
+);
+```
+
+This depends on `decryptForCurrentUser` and `session`. It must use the current
+decryption function and current session. It is passed into the WebSocket setup
+effect, so stable identity helps avoid unnecessary socket reconnection.
+
+#### `loadThread`
+
+```ts
+const loadThread = useCallback(
+  async (conversation: Conversation) => {
+    ...
+  },
+  [decryptForCurrentUser, privateKey, session],
+);
+```
+
+This depends on the session, private key, and decrypt function. If any of those
+changes, loading a thread needs the new values. If only toast state changes, the
+same `loadThread` function can be reused.
+
+Why not wrap every function in `useCallback`? Because it adds complexity. The
+app uses it only where function identity matters for effects or long-lived
+callbacks.
+
+### `useEffect`: side effects after render
+
+`useEffect` runs code after React renders. It is used for work that reaches
+outside pure JSX calculation:
+
+- IndexedDB reads
+- API calls
+- WebSocket setup
+- timers
+- debounced search
+
+Rendering should stay pure. Opening a socket during render would be wrong
+because React may render more than once. Effects give React a controlled place
+to run side effects and clean them up.
+
+#### Boot effect
+
+```ts
+useEffect(() => {
+  loadSession()
+    .then(...)
+    .finally(() => setBooting(false));
+}, []);
+```
+
+The empty dependency array means this effect runs once after the component first
+mounts. Its job is to ask IndexedDB whether a session exists. It does not unlock
+the private key, because the password is not stored.
+
+Without this effect, the app would not restore saved token/session metadata.
+
+#### WebSocket effect
+
+```ts
+useEffect(() => {
+  if (!session || !privateKey) return;
+  ...
+  const socket = new WhisperSocket(...);
+  socket.connect();
+  return () => socket.close();
+}, [handleLogout, privateKey, receiveRealtimeMessage, session]);
+```
+
+This effect starts realtime messaging. The guard is critical:
+
+```ts
+if (!session || !privateKey) return;
+```
+
+The app should not connect realtime unless it has both authentication and a
+private key capable of decrypting incoming messages.
+
+The cleanup function:
+
+```ts
+return () => socket.close();
+```
+
+closes the old socket when dependencies change or the component unmounts. This
+prevents duplicate WebSocket connections.
+
+This is one of the main reasons `useCallback` matters. If
+`receiveRealtimeMessage` changed identity on every render, this effect could
+close and reopen the socket far too often.
+
+#### Token refresh effect
+
+```ts
+useEffect(() => {
+  if (!session) return;
+  const handle = window.setTimeout(async () => {
+    ...
+  }, Math.max(10_000, session.accessTokenExpiresAt - Date.now() - 60_000));
+
+  return () => window.clearTimeout(handle);
+}, [handleLogout, session]);
+```
+
+This effect schedules refresh before the access token expires. It uses a timer,
+so it must also clean up the timer. If the session changes, the old timer is
+cleared and a new one is scheduled.
+
+Without cleanup, multiple refresh timers could pile up.
+
+#### Selected thread effect
+
+```ts
+useEffect(() => {
+  if (!session || !privateKey || !selected) return;
+  if (toast?.tone === "info") {
+    setToast(null);
+  }
+  void loadThread(selected);
+}, [loadThread, privateKey, selected, session, toast?.tone]);
+```
+
+This effect loads messages when a conversation is selected. The guard ensures
+that thread loading only happens when the app can authenticate and decrypt.
+
+It also clears informational toasts when a chat opens. That UX detail prevents
+guidance toasts from blocking the message composer.
+
+#### Search effect
+
+```ts
+useEffect(() => {
+  if (!session) return;
+  const handle = window.setTimeout(async () => {
+    ...
+  }, 220);
+
+  return () => window.clearTimeout(handle);
+}, [query, session]);
+```
+
+This effect debounces search. When `query` changes, it waits 220ms before
+calling the backend. If the user types another character before 220ms, cleanup
+clears the previous timer.
+
+Without this effect, the app would either search on every keystroke immediately
+or need more complicated event-handler logic.
+
+### How the hooks work together
+
+The hooks form a chain:
+
+1. `useState` stores session, private key, selected chat, messages, and draft.
+2. `useEffect` reacts to important state changes by loading sessions, opening
+   sockets, refreshing tokens, searching users, and loading threads.
+3. `useCallback` keeps effect function dependencies stable so effects do not
+   rerun just because React recreated a function.
+4. `useMemo` keeps sorted messages from being recalculated on unrelated renders.
+5. `useRef` holds the socket instance so event handlers can use it without
+   turning it into reactive UI state.
+
+That is the core React mental model in this app:
+
+```text
+state drives UI
+effects synchronize with outside systems
+callbacks stabilize functions used by effects
+memo caches derived values
+refs hold imperative objects
+```
+
+For an E2EE chat app, this matters because the outside systems are sensitive:
+IndexedDB stores session metadata, WebSocket carries encrypted messages, and Web
+Crypto decrypts content only after the private key is available.
+
 ### State Initialization
 
 Line 49 starts `App`.
