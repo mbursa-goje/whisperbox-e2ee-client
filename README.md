@@ -209,6 +209,134 @@ It explains the mental model, data flow, crypto layer, API layer, WebSocket
 handling, IndexedDB session storage, Tailwind UI, toast behavior, and the
 message bubble decisions in depth.
 
+## Async Functions In This Project
+
+JavaScript asynchronous programming lets the app start work that may finish
+later, such as key generation, IndexedDB access, network requests, token
+refresh, or message decryption, without freezing the UI.
+
+In this project, an `async` function is used when a task returns a `Promise` and
+the next line of code should wait for that task's result.
+
+Example from the registration crypto flow:
+
+```ts
+export async function createRegistrationKeyBundle(
+  password: string,
+): Promise<RegistrationKeyBundle> {
+  const pair = await crypto.subtle.generateKey(RSA_PARAMS, true, [
+    "encrypt",
+    "decrypt",
+  ]);
+  const salt = crypto.getRandomValues(new Uint8Array(new ArrayBuffer(16)));
+  const wrappingKey = await deriveWrappingKey(password, salt);
+  const publicKey = await exportPublicKey(pair.publicKey);
+  const wrappedPrivateKey = await wrapPrivateKey(pair.privateKey, wrappingKey);
+
+  return {
+    publicKey,
+    wrappedPrivateKey: bytesToBase64(wrappedPrivateKey),
+    pbkdf2Salt: bytesToBase64(salt),
+    privateKey: pair.privateKey,
+  };
+}
+```
+
+Why this function is `async`:
+
+- `crypto.subtle.generateKey(...)` is asynchronous because browser cryptography
+  can take time and should not block rendering.
+- `deriveWrappingKey(...)` is asynchronous because PBKDF2 performs many hashing
+  rounds.
+- `exportPublicKey(...)` is asynchronous because Web Crypto exports key material
+  through Promise-based APIs.
+- `wrapPrivateKey(...)` is asynchronous because it exports, pads, imports, and
+  wraps private-key bytes with Web Crypto.
+
+`await` means "pause this async function until the Promise resolves." It does
+not freeze the whole app. While the function is waiting, the browser can still
+render, respond to clicks, and keep the page alive.
+
+The registration flow needs this ordering:
+
+```text
+generate RSA keys
+  -> create salt
+  -> derive wrapping key
+  -> export public key
+  -> wrap private key
+  -> return registration bundle
+```
+
+Without `await`, the app would try to use unfinished Promise objects instead of
+real keys and encrypted blobs.
+
+Async functions are also used in the API layer:
+
+```ts
+async function request<T = unknown>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<T> {
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    });
+  } catch {
+    throw new Error(
+      "WhisperBox cannot reach the secure messaging server. Check your internet connection, refresh the page, and try again.",
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(await errorMessage(response));
+  }
+
+  return response.json() as Promise<T>;
+}
+```
+
+Why this request helper is `async`:
+
+- `fetch(...)` is asynchronous because HTTP requests take time.
+- `await fetch(...)` waits for the server response.
+- `try/catch` catches browser-level network failures, such as being offline or
+  the request not reaching the API.
+- `response.ok` checks whether the backend returned a successful HTTP status.
+- `await errorMessage(response)` reads backend validation errors when the status
+  is not successful.
+- `response.json()` parses the successful JSON response.
+
+The app uses async functions in these important places:
+
+- Registration: generate keys, derive wrapping key, wrap private key, call
+  `/auth/register`.
+- Login: call `/auth/login`, unwrap private key, save the session.
+- Message sending: fetch recipient public key, encrypt message payload, send by
+  WebSocket or HTTP fallback.
+- Message loading: fetch encrypted history, decrypt every message locally.
+- Token refresh: call `/auth/refresh` before the access token expires.
+- IndexedDB storage: save, load, and clear session metadata.
+- WebSocket recovery: refresh token and reconnect after close code `4001`.
+
+Short mental model:
+
+```text
+async = this function does work that may finish later
+await = wait for this Promise before continuing this function
+fetch = make an HTTP request
+try/catch = handle failures without crashing the UI
+```
+
+In an E2EE app, async code is especially important because both security work
+and network work are naturally asynchronous. Key generation, key wrapping,
+message encryption, message decryption, and backend communication must happen in
+the right order while the UI remains responsive.
+
 ## Commit Convention
 
 This repository uses Conventional Commits:
